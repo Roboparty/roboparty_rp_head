@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
-Upstream-Name: roboparty-head
+Upstream-Name: roboparty-rp-head
 Source: https://github.com/changchuanyong/roboparty_head
 
 Files: *

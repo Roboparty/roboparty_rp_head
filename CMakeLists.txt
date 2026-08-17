@@ -2,9 +2,11 @@
 # Copyright (C) 2026 changchuanyong
 cmake_minimum_required(VERSION 3.12)
 
-file(READ "package.xml" PACKAGE_XML_CONTENT)
-string(REGEX MATCH "<version>([0-9\\.]+)</version>" _ ${PACKAGE_XML_CONTENT})
-project(roboparty_head VERSION ${CMAKE_MATCH_1})
+file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/debian/changelog" _changelog_first_line LIMIT_COUNT 1)
+string(REGEX MATCH "\\(([0-9]+\\.[0-9]+\\.[0-9]+)" _ "${_changelog_first_line}")
+set(ROBOPARTY_RP_HEAD_VERSION "${CMAKE_MATCH_1}")
+
+project(roboparty_head VERSION ${ROBOPARTY_RP_HEAD_VERSION})
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3")
 if(NOT CMAKE_CROSSCOMPILING)
@@ -21,7 +23,6 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_TYPE Release)
 
-find_package(ament_cmake QUIET)
 find_package(roboparty_motors REQUIRED)
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 find_package(pybind11 REQUIRED)
@@ -87,9 +88,3 @@ install(TARGETS head_motor_py
   ARCHIVE DESTINATION ${PYTHON_INSTALL_DIR}
   RUNTIME DESTINATION ${PYTHON_INSTALL_DIR}
 )
-
-if(ament_cmake_FOUND)
-  ament_export_targets(roboparty_head-targets HAS_LIBRARY_TARGET)
-  ament_export_dependencies(roboparty_motors)
-  ament_package()
-endif()

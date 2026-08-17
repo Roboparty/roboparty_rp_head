@@ -9,5 +9,4 @@ override_dh_auto_configure:
 	dh_auto_configure -- \
 		-DCMAKE_INSTALL_PREFIX=/opt/roboparty \
 		-DCMAKE_PREFIX_PATH=$(ROBOPARTY_DEP_PREFIX) \
-		-DCMAKE_DISABLE_FIND_PACKAGE_ament_cmake=TRUE \
 		-DCMAKE_BUILD_TYPE=Release

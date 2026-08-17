@@ -20,8 +20,6 @@ about: 提交代码变更 / Submit a code change
 
 - [ ] 本次变更不需要改版本号 / This change does NOT bump version
 - [ ] 已更新 debian/changelog
-- [ ] 已同步 package.xml（仅 ROS 包 / ROS packages only）
-- [ ] changelog 和 package.xml 版本一致 / Versions match
 
 ## 测试 / Testing
 
