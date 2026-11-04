@@ -319,7 +319,11 @@ bool HeadControllerImpl::set_zero(int axis) {
     if (enabled_.load()) {
         throw std::runtime_error("set_zero requires disabled motors: call disable() first");
     }
-    return motors_[axis_index(axis)]->set_motor_zero();  // includes an internal 500 ms wait
+    // roboparty-motors >= 2.3 returns void here; older releases returned bool.
+    // Ignoring the return value compiles against both. The call still includes
+    // an internal 500 ms wait.
+    motors_[axis_index(axis)]->set_motor_zero();
+    return true;
 }
 
 int HeadControllerImpl::axis_index(int axis) const {
