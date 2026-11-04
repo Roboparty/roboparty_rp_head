@@ -24,13 +24,13 @@ jobs:
 
   build:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - arch: amd64
             os: ubuntu-24.04
           - arch: arm64
-            # os: ubuntu-22.04-arm
-            os: [self-hosted, rk3588]
+            os: ubuntu-24.04-arm
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout code
