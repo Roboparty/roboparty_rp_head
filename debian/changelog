@@ -1,3 +1,13 @@
+roboparty-rp-head (0.2.0-1) stable; urgency=medium
+
+  * Release 0.2.0: pure-Python head controller and CLI built on motors_py.
+  * Add offline tests and CI (python-tests + amd64/arm64 deb builds).
+  * Install roboparty_head to /opt/roboparty/lib/python3/dist-packages and
+    expose the roboparty-head launcher.
+  * Build against roboparty-motors 2.3 (void set_motor_zero).
+
+ -- changchuanyong <1984715306@qq.com>  Wed, 04 Nov 2026 17:00:00 +0800
+
 roboparty-rp-head (0.1.0-2) stable; urgency=medium
 
   * Add pure-Python head controller and CLI built on the existing motors_py
