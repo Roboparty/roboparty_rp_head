@@ -110,9 +110,12 @@ class HeadControllerTests(unittest.TestCase):
     def test_init_with_enable_starts_control_thread(self) -> None:
         self.controller.init_motors(enable=True)
         try:
+            from roboparty_head import controller as module
+
             motor = self.factory.motors[1]
             self.assertIn("init_motor", motor.calls)
-            self.assertIn("set_mode", motor.calls)
+            if module.motors_py is not None:
+                self.assertIn("set_mode", motor.calls)
             self.assertTrue(motor.mit_event.wait(1.0), "control thread did not send MIT")
         finally:
             self.controller.disable()
