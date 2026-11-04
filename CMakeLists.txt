@@ -88,3 +88,13 @@ install(TARGETS head_motor_py
   ARCHIVE DESTINATION ${PYTHON_INSTALL_DIR}
   RUNTIME DESTINATION ${PYTHON_INSTALL_DIR}
 )
+
+# Pure-Python controller built on the existing motors_py module (no C++ build).
+install(DIRECTORY python/roboparty_head
+  DESTINATION lib/python3/dist-packages
+  PATTERN "__pycache__" EXCLUDE
+  PATTERN "*.pyc" EXCLUDE
+)
+
+install(PROGRAMS python/roboparty-head DESTINATION bin)
+

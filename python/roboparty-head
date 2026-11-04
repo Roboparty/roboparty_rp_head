@@ -1,0 +1,27 @@
+#!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0
+"""Launcher for the pure-Python RoboParty head controller."""
+
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+PREFIX = HERE.parent
+VERSIONED = f"python{sys.version_info.major}.{sys.version_info.minor}"
+CANDIDATES = (
+    PREFIX / "lib" / "python3" / "dist-packages",
+    PREFIX / "lib" / VERSIONED / "site-packages",
+    Path("/opt/roboparty/lib/python3/dist-packages"),
+    Path("/opt/roboparty/lib") / VERSIONED / "site-packages",
+    PREFIX,
+    HERE,
+)
+
+for candidate in CANDIDATES:
+    if (candidate / "roboparty_head").is_dir() and str(candidate) not in sys.path:
+        sys.path.insert(0, str(candidate))
+
+from roboparty_head.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -10,3 +10,8 @@ override_dh_auto_configure:
 		-DCMAKE_INSTALL_PREFIX=/opt/roboparty \
 		-DCMAKE_PREFIX_PATH=$(ROBOPARTY_DEP_PREFIX) \
 		-DCMAKE_BUILD_TYPE=Release
+
+override_dh_auto_install:
+	dh_auto_install
+	install -d debian/roboparty-rp-head/usr/bin
+	ln -sf /opt/roboparty/bin/roboparty-head debian/roboparty-rp-head/usr/bin/roboparty-head
