@@ -33,12 +33,14 @@ class HeadController {
 
     /**
      * @brief Construct the head controller (does not initialize hardware; call init_motors())
-     * @param can_interface CANFD interface name, e.g. "can0"
+     * @param can_interface CAN interface name, e.g. "can0" or "can_top"
      * @param yaw_id CAN ID of the yaw motor, default 1
      * @param pitch_id CAN ID of the pitch motor, default 2
+     * @param interface_type Transport: "can" for classic CAN 2.0 (default), "canfd" for CAN-FD
      * @note Construction does not touch hardware and throws nothing
      */
-    HeadController(const std::string& can_interface, uint16_t yaw_id = 1, uint16_t pitch_id = 2);
+    HeadController(const std::string& can_interface, uint16_t yaw_id = 1, uint16_t pitch_id = 2,
+                   const std::string& interface_type = "can");
 
     /// @brief Destructor: stops the control thread and deinitializes motors
     ~HeadController();

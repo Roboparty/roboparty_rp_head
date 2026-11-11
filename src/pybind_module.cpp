@@ -11,10 +11,11 @@ PYBIND11_MODULE(head_motor_py, m) {
     m.doc() = "Head Controller Python SDK (two-axis LRO head motors)";
 
     py::class_<HeadController>(m, "HeadController")
-        .def(py::init<const std::string&, uint16_t, uint16_t>(),
+        .def(py::init<const std::string&, uint16_t, uint16_t, const std::string&>(),
              py::arg("can_interface"),
              py::arg("yaw_id") = 1,
-             py::arg("pitch_id") = 2)
+             py::arg("pitch_id") = 2,
+             py::arg("interface_type") = "can")
         // Lifecycle
         .def("init_motors", &HeadController::init_motors)
         .def("deinit_motors", &HeadController::deinit_motors)

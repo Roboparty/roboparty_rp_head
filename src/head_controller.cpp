@@ -20,6 +20,11 @@ constexpr float kDeg2Rad = static_cast<float>(M_PI) / 180.0f;
 // LRO_Motor_Model enum (roboparty_motors internal): 0=5550 1=6562 2=8462 3=10062
 constexpr int kLroModel5550 = 0;
 constexpr auto kInitialFeedbackTimeout = std::chrono::milliseconds(100);
+// Refresh one axis every 25 control ticks (100 Hz -> 250 ms), so each axis is
+// refreshed every 500 ms. Staggering and a short guard delay avoid collisions
+// with the regular MIT frames / motor feedback on classic CAN (1 Mbps).
+constexpr int kRefreshIntervalTicks = 25;
+constexpr auto kRefreshGuard = std::chrono::microseconds(1000);
 }  // namespace
 
 // ---------------------------------------------------------------------------
@@ -36,6 +41,7 @@ struct HeadControllerImpl {
     static constexpr float kControlDt = 0.01f;   // control period (s)
 
     std::string can_interface_;
+    std::string interface_type_;
     uint16_t yaw_id_;
     uint16_t pitch_id_;
     std::array<std::shared_ptr<MotorDriver>, 2> motors_;  // [0]=yaw [1]=pitch
@@ -54,8 +60,10 @@ struct HeadControllerImpl {
     std::array<float, 2> speed_deg_s_;   // deg/s
     std::array<float, 2> kp_{kDefaultKp, kDefaultKp};
     std::array<float, 2> kd_{kDefaultKd, kDefaultKd};
+    int refresh_motor_index_{0};  // control thread only: alternate refresh target
 
-    HeadControllerImpl(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id);
+    HeadControllerImpl(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id,
+                       const std::string& interface_type);
     ~HeadControllerImpl();
 
     int axis_index(int axis) const;  // 1/2 -> 0/1
@@ -80,8 +88,9 @@ struct HeadControllerImpl {
     bool set_zero(int axis);
 };
 
-HeadControllerImpl::HeadControllerImpl(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id)
-    : can_interface_(can_interface), yaw_id_(yaw_id), pitch_id_(pitch_id) {
+HeadControllerImpl::HeadControllerImpl(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id,
+                                       const std::string& interface_type)
+    : can_interface_(can_interface), interface_type_(interface_type), yaw_id_(yaw_id), pitch_id_(pitch_id) {
     for (int i = 0; i < 2; ++i) {
         limit_min_[i] = HeadController::kDefaultLimitMin[i];
         limit_max_[i] = HeadController::kDefaultLimitMax[i];
@@ -103,8 +112,8 @@ void HeadControllerImpl::init_motors() {
         return;
     }
     try {
-        motors_[0] = MotorDriver::create_motor(yaw_id_, "canfd", can_interface_, "LRO", kLroModel5550);
-        motors_[1] = MotorDriver::create_motor(pitch_id_, "canfd", can_interface_, "LRO", kLroModel5550);
+        motors_[0] = MotorDriver::create_motor(yaw_id_, interface_type_, can_interface_, "LRO", kLroModel5550);
+        motors_[1] = MotorDriver::create_motor(pitch_id_, interface_type_, can_interface_, "LRO", kLroModel5550);
         for (int i = 0; i < 2; ++i) {
             const uint8_t err = motors_[i]->init_motor();
             if (err != 0) {  // LRO_NO_ERROR
@@ -197,6 +206,11 @@ void HeadControllerImpl::refresh_unsafe() {
 }
 
 void HeadControllerImpl::wait_feedback_unsafe() {
+    // LRO's first refresh only switches the local control mode; set MIT
+    // explicitly so the query frame is actually sent.
+    for (auto& motor : motors_) {
+        motor->set_motor_control_mode(MotorDriver::MIT);
+    }
     refresh_unsafe();
     const auto feedback_deadline = std::chrono::steady_clock::now() + kInitialFeedbackTimeout;
     while ((motors_[0]->get_response_count() != 0 || motors_[1]->get_response_count() != 0) &&
@@ -232,10 +246,17 @@ void HeadControllerImpl::control() {
                     // PD position servo: target position + kp/kd, zero torque feedforward
                     motors_[i]->motor_mit_cmd(cur_target_[i], 0.0f, kp_[i], kd_[i], 0.0f);
                 }
-                // Regular MIT command frames carry no feedback; interleave zero MIT frames every 500 ms.
-                // Keep the rate moderate: zero frames have no stiffness momentarily; high rates have triggered DRV_ERROR.
-                if (++refresh_tick % 50 == 0) {
-                    refresh_unsafe();
+                // Regular MIT command frames carry no feedback; interleave zero MIT frames.
+                // Refresh one axis at a time, every 250 ms (each axis every 500 ms), and
+                // leave a short guard after the regular commands. On classic CAN a
+                // back-to-back refresh frame can collide with the motor's feedback and
+                // push TEC into ERROR-PASSIVE.
+                if (++refresh_tick >= kRefreshIntervalTicks) {
+                    refresh_tick = 0;
+                    const int idx = refresh_motor_index_;
+                    refresh_motor_index_ ^= 1;
+                    std::this_thread::sleep_for(kRefreshGuard);
+                    motors_[idx]->refresh_motor_status();
                 }
             }
         }
@@ -355,8 +376,9 @@ void HeadControllerImpl::check_open() const {
 // ---------------------------------------------------------------------------
 // HeadController public interface forwarding (Pimpl)
 // ---------------------------------------------------------------------------
-HeadController::HeadController(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id)
-    : impl_(std::make_unique<HeadControllerImpl>(can_interface, yaw_id, pitch_id)) {}
+HeadController::HeadController(const std::string& can_interface, uint16_t yaw_id, uint16_t pitch_id,
+                               const std::string& interface_type)
+    : impl_(std::make_unique<HeadControllerImpl>(can_interface, yaw_id, pitch_id, interface_type)) {}
 
 HeadController::~HeadController() = default;
 

@@ -1,8 +1,23 @@
+roboparty-rp-head (0.2.1-1) stable; urgency=medium
+
+  * Add interface_type ("can" / "canfd") to the C++ API, pybind module,
+    Python controller and CLI; default to "can" for this classic-CAN head.
+  * Stagger the periodic zero-MIT refresh: one axis every 250 ms with a
+    1 ms guard, so each axis is still refreshed every 500 ms. This avoids
+    classic CAN TEC spikes and ERROR-PASSIVE after a session.
+  * Add the "teleop" CLI subcommand and keyboard teleop (a/d yaw,
+    w/s pitch, q quit), with scripted --demo mode.
+  * Rename the internal Python modules to rphead_controller, rphead_cli and
+    rphead_teleop to avoid generic module names.
+  * Require roboparty-motors (>= 2.3.4) for the classic CAN LRO path.
+
+ -- changchuanyong <1984715306@qq.com>  Wed, 11 Nov 2026 13:00:00 +0800
+
 roboparty-rp-head (0.2.0-1) stable; urgency=medium
 
   * Release 0.2.0: pure-Python head controller and CLI built on motors_py.
   * Add offline tests and CI (python-tests + amd64/arm64 deb builds).
-  * Install roboparty_head to /opt/roboparty/lib/python3/dist-packages and
+  * Install roboparty_head to the install prefix (default /opt/roboparty)/lib/python3/dist-packages and
     expose the roboparty-head launcher.
   * Build against roboparty-motors 2.3 (void set_motor_zero).
 
@@ -12,7 +27,7 @@ roboparty-rp-head (0.1.0-2) stable; urgency=medium
 
   * Add pure-Python head controller and CLI built on the existing motors_py
     module, with offline tests and CI.
-  * Install roboparty_head to /opt/roboparty/lib/python3/dist-packages and
+  * Install roboparty_head to the install prefix (default /opt/roboparty)/lib/python3/dist-packages and
     expose the roboparty-head launcher.
 
  -- changchuanyong <1984715306@qq.com>  Tue, 04 Nov 2026 12:00:00 +0800
