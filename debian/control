@@ -3,13 +3,13 @@ Section: libs
 Priority: optional
 Maintainer: changchuanyong <1984715306@qq.com>
 Build-Depends: debhelper-compat (= 12), cmake, pybind11-dev, python3-dev,
-               roboparty-motors (>= 2.2.0)
+               roboparty-motors (>= 2.3.4)
 Standards-Version: 4.5.1
 
 Package: roboparty-rp-head
 Architecture: any
-Depends: ${shlibs:Depends}, ${misc:Depends}, roboparty-motors (>= 2.2.0), python3
+Depends: ${shlibs:Depends}, ${misc:Depends}, roboparty-motors (>= 2.3.4), python3
 Description: RoboParty two-axis head controller
- C++ controller library for a two-axis LRO motor head over CAN-FD.
+ C++ controller library for a two-axis LRO motor head over CAN / CAN-FD.
  Provides static library, headers, C++ Python bindings, and a pure-Python
  controller/CLI built on motors_py.

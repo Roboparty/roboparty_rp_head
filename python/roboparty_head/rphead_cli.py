@@ -4,9 +4,10 @@
 
 Safety:
   * ``probe`` / ``status`` are read-only.
-  * ``init``, ``enable``, ``move`` and ``look`` enable torque and require ``--yes``
-    (or an explicit interactive confirmation).
+  * ``init``, ``enable``, ``move``, ``look`` and ``teleop`` enable torque and
+    require ``--yes`` (or an explicit interactive confirmation).
   * The pitch axis droops under gravity when disabled.
+  * ``--interface-type can`` uses classic CAN 2.0 (8-byte frames) and is the default.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import json
 import sys
 import time
 
-from .controller import (
+from .rphead_controller import (
     DEFAULT_CONTROL_DT,
     DEFAULT_KD,
     DEFAULT_KP,
@@ -44,6 +45,7 @@ def _controller(args: argparse.Namespace) -> HeadController:
         can_interface=args.interface,
         yaw_id=args.yaw_id,
         pitch_id=args.pitch_id,
+        interface_type=args.interface_type,
         kp=args.kp,
         kd=args.kd,
         control_dt=args.dt,
@@ -108,6 +110,16 @@ def _run_once(args: argparse.Namespace) -> int:
         finally:
             controller.deinit_motors()
         return 0
+
+    if command == "teleop":
+        if not _confirm(args, "teleop"):
+            return 2
+        controller = _controller(args)
+        try:
+            from .rphead_teleop import run as run_teleop
+            return run_teleop(controller, step=args.step, speed=args.speed, demo=args.demo)
+        finally:
+            controller.deinit_motors()
 
     if command in ("move", "look"):
         if not _confirm(args, command):
@@ -202,7 +214,9 @@ def _interactive(args: argparse.Namespace) -> int:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--interface", default="can0", help="CAN-FD interface (default: can0)")
+    parser.add_argument("--interface", default="can0", help="CAN interface name (default: can0)")
+    parser.add_argument("--interface-type", choices=("canfd", "can"), default="can",
+                        help="transport: can (classic CAN 2.0, default) or canfd")
     parser.add_argument("--yaw-id", type=int, default=1, help="yaw motor CAN ID (default: 1)")
     parser.add_argument("--pitch-id", type=int, default=2, help="pitch motor CAN ID (default: 2)")
     parser.add_argument("--kp", type=float, default=DEFAULT_KP)
@@ -241,6 +255,12 @@ def build_parser() -> argparse.ArgumentParser:
     limits.add_argument("axis")
     limits.add_argument("min", type=float)
     limits.add_argument("max", type=float)
+
+    teleop = sub.add_parser("teleop", help="keyboard teleop (a/d yaw, w/s pitch, q quit)")
+    teleop.add_argument("--step", type=float, default=2.0, help="degrees per key press")
+    teleop.add_argument("--speed", type=float, default=20.0, help="motion speed (deg/s)")
+    teleop.add_argument("--demo", action="store_true",
+                        help="run a short scripted motion instead of keyboard")
     return parser
 
 

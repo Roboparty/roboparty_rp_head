@@ -70,6 +70,7 @@ class HeadController:
         yaw_id: int = 1,
         pitch_id: int = 2,
         *,
+        interface_type: str = "can",
         kp: float = DEFAULT_KP,
         kd: float = DEFAULT_KD,
         control_dt: float = DEFAULT_CONTROL_DT,
@@ -81,6 +82,7 @@ class HeadController:
             motor_factory = motors_py.MotorDriver.create_motor
         self._factory = motor_factory
         self.can_interface = can_interface
+        self.interface_type = str(interface_type)
         self.yaw_id = int(yaw_id)
         self.pitch_id = int(pitch_id)
         self._ids = (self.yaw_id, self.pitch_id)
@@ -100,6 +102,7 @@ class HeadController:
         self._opened = False
         self._thread: threading.Thread | None = None
         self._running = False
+        self._refresh_index = 0  # alternate refresh target: yaw, pitch, yaw, ...
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -305,7 +308,7 @@ class HeadController:
             for motor_id in self._ids:
                 created.append(self._factory(
                     motor_id=motor_id,
-                    interface_type="canfd",
+                    interface_type=self.interface_type,
                     interface=self.can_interface,
                     motor_type="LRO",
                     motor_model=LRO_MODEL_5550,
@@ -324,6 +327,11 @@ class HeadController:
         motors = [motor for motor in self._motors if motor is not None]
         if not motors:
             return
+        # LRO's first refresh only switches the local control mode; set MIT
+        # explicitly so the query frame is actually sent.
+        if motors_py is not None:
+            for motor in motors:
+                motor.set_motor_control_mode(motors_py.MotorControlMode.MIT)
         for motor in motors:
             motor.refresh_motor_status()
         deadline = time.monotonic() + max(0.0, timeout)
@@ -367,8 +375,15 @@ class HeadController:
                 motor.motor_mit_cmd(position, 0.0, kp, kd, 0.0)
             if commands:
                 refresh_tick += 1
-                if refresh_tick % 50 == 0:
-                    for motor, _position, _kp, _kd in commands:
+                if refresh_tick >= 25:
+                    refresh_tick = 0
+                    motor = self._motors[self._refresh_index]
+                    self._refresh_index ^= 1
+                    if motor is not None:
+                        # Guard against colliding with the regular MIT frames and
+                        # the motor's feedback; back-to-back refresh frames can
+                        # push classic CAN TEC into ERROR-PASSIVE.
+                        time.sleep(0.001)
                         motor.refresh_motor_status()
 
             now = time.monotonic()

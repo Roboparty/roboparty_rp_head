@@ -9,3 +9,6 @@ __pycache__/
 .vscode/
 .idea/
 compile_commands.json
+
+# 本地测试，不随源码提交
+tests/
